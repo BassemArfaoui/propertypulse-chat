@@ -45,7 +45,7 @@ export function ChatThread({ conversationId }: { conversationId: string }) {
         await touchConversation(conversationId);
         await queryClient.invalidateQueries({ queryKey: ["messages", conversationId] });
         await queryClient.invalidateQueries({ queryKey: ["conversations"] });
-        setLocal((prev) => prev.filter((m) => m.role !== role || !m.pending));
+        setLocal([]);
       } catch {
         toast.error("Message couldn't be saved to your history");
       }
