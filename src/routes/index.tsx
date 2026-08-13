@@ -1,24 +1,51 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { ChatShell } from "@/components/chat/chat-shell";
+import { EmptyState } from "@/components/chat/empty-state";
+import { useAuth } from "@/hooks/use-auth";
+import { createConversation, setPendingPrompt } from "@/lib/chat-store";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "Terra — Agentic Real Estate Assistant" },
+      {
+        name: "description",
+        content:
+          "Search listings, draft properties, match buyers and read market analytics in one streaming AI conversation.",
+      },
+      { property: "og:title", content: "Terra — Agentic Real Estate Assistant" },
+      {
+        property: "og:description",
+        content: "An AI copilot for real estate agents: listings, clients and market insight.",
+      },
+    ],
+  }),
   component: Index,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
 function Index() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const handleSend = async (text: string) => {
+    if (!user) return;
+    try {
+      const title = text.length > 48 ? `${text.slice(0, 48)}…` : text;
+      const conversation = await createConversation(user.id, title);
+      setPendingPrompt(conversation.id, text);
+      await queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      navigate({ to: "/c/$threadId", params: { threadId: conversation.id } });
+    } catch {
+      toast.error("Couldn't start that conversation");
+    }
+  };
+
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
+    <ChatShell>
+      <EmptyState onSend={(text) => void handleSend(text)} />
+    </ChatShell>
   );
 }
