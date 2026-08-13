@@ -84,8 +84,8 @@ export function ChatThread({ conversationId }: { conversationId: string }) {
     const prompt = takePendingPrompt(conversationId);
     if (!prompt) return;
     startedFor.current = conversationId;
-    void start(prompt);
-  }, [conversationId, start]);
+    send(prompt);
+  }, [conversationId, send]);
 
   const all = [...persisted, ...local];
   const hidden = Math.max(0, all.length - window_);
