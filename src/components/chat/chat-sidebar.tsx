@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { LogOut, MoreHorizontal, Pin, PinOff, Plus, Search, Trash2, Moon, Sun } from "lucide-react";
+import { MoreHorizontal, Pin, PinOff, Plus, Search, Trash2, Moon, Sun } from "lucide-react";
 import { toast } from "sonner";
 import logo from "@/assets/estate-agent-logo.png";
 import { Button } from "@/components/ui/button";
@@ -13,9 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { deleteConversation, listConversations, setPinned } from "@/lib/chat-store";
-import { supabase } from "@/integrations/supabase/client";
 import { useTheme } from "@/hooks/use-theme";
-import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 
 function relative(date: string) {
@@ -33,7 +31,6 @@ export function ChatSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { theme, toggle } = useTheme();
-  const { user } = useAuth();
   const params = useParams({ strict: false }) as { threadId?: string };
 
   const { data: conversations = [] } = useQuery({
@@ -160,21 +157,10 @@ export function ChatSidebar({ onNavigate }: { onNavigate?: () => void }) {
 
       <div className="flex items-center gap-2 border-t border-sidebar-border px-3 py-3">
         <div className="min-w-0 flex-1">
-          <p className="truncate text-xs text-muted-foreground">{user?.email ?? "Signed in"}</p>
+          <p className="truncate text-xs text-muted-foreground">Local workspace</p>
         </div>
         <Button variant="ghost" size="icon-sm" aria-label="Toggle theme" onClick={toggle}>
           {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          aria-label="Sign out"
-          onClick={async () => {
-            await supabase.auth.signOut();
-            navigate({ to: "/auth" });
-          }}
-        >
-          <LogOut className="size-4" />
         </Button>
       </div>
     </div>

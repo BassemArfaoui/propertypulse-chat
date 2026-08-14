@@ -13,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import { Composer } from "./composer";
 import { MessageRenderer } from "./message-renderer";
 import { useAgentStream } from "./use-agent-stream";
-import { useAuth } from "@/hooks/use-auth";
 import type { ChatMessage, MessagePart } from "@/lib/agent-types";
 import { listMessages, saveMessage, takePendingPrompt, touchConversation } from "@/lib/chat-store";
 
@@ -21,7 +20,6 @@ import { listMessages, saveMessage, takePendingPrompt, touchConversation } from 
 const WINDOW = 40;
 
 export function ChatThread({ conversationId }: { conversationId: string }) {
-  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [local, setLocal] = useState<ChatMessage[]>([]);
   const [window_, setWindow] = useState(WINDOW);
@@ -39,9 +37,8 @@ export function ChatThread({ conversationId }: { conversationId: string }) {
 
   const persist = useCallback(
     async (role: "user" | "assistant", parts: MessagePart[]) => {
-      if (!user) return;
       try {
-        await saveMessage({ conversationId, userId: user.id, role, parts });
+        await saveMessage({ conversationId, role, parts });
         await touchConversation(conversationId);
         await queryClient.invalidateQueries({ queryKey: ["messages", conversationId] });
         await queryClient.invalidateQueries({ queryKey: ["conversations"] });
@@ -50,7 +47,7 @@ export function ChatThread({ conversationId }: { conversationId: string }) {
         toast.error("Message couldn't be saved to your history");
       }
     },
-    [conversationId, queryClient, user],
+    [conversationId, queryClient],
   );
 
   const onComplete = useCallback(
@@ -73,9 +70,9 @@ export function ChatThread({ conversationId }: { conversationId: string }) {
       };
       setLocal((prev) => [...prev, optimistic]);
       void persist("user", optimistic.parts);
-      void start(text);
+      void start(conversationId, text);
     },
-    [persist, start],
+    [conversationId, persist, start],
   );
 
   // Run the first message typed on the empty state, once per conversation.

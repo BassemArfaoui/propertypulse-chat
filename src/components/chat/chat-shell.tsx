@@ -1,29 +1,13 @@
-import { useEffect, useState, type ReactNode } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useState, type ReactNode } from "react";
 import { Menu, PanelLeftClose, PanelLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ChatSidebar } from "./chat-sidebar";
-import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 
 export function ChatShell({ children, header }: { children: ReactNode; header?: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { user, loading } = useAuth();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!loading && !user) navigate({ to: "/auth" });
-  }, [loading, user, navigate]);
-
-  if (loading || !user) {
-    return (
-      <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">
-        Loading your workspace…
-      </div>
-    );
-  }
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">

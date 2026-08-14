@@ -3,7 +3,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ChatShell } from "@/components/chat/chat-shell";
 import { EmptyState } from "@/components/chat/empty-state";
-import { useAuth } from "@/hooks/use-auth";
 import { createConversation, setPendingPrompt } from "@/lib/chat-store";
 
 export const Route = createFileRoute("/")({
@@ -26,15 +25,13 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
-  const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const handleSend = async (text: string) => {
-    if (!user) return;
     try {
       const title = text.length > 48 ? `${text.slice(0, 48)}…` : text;
-      const conversation = await createConversation(user.id, title);
+      const conversation = await createConversation(title);
       setPendingPrompt(conversation.id, text);
       await queryClient.invalidateQueries({ queryKey: ["conversations"] });
       navigate({ to: "/c/$threadId", params: { threadId: conversation.id } });

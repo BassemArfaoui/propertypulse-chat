@@ -1,5 +1,5 @@
-import { supabase } from "@/integrations/supabase/client";
 import type { ChatMessage, Conversation, MessagePart } from "./agent-types";
+import { backendFetch } from "./backend-api";
 
 /** First message typed on the empty state, handed to the thread route after navigation. */
 const pending = new Map<string, string>();
@@ -11,55 +11,46 @@ export const takePendingPrompt = (id: string) => {
 };
 
 export async function listConversations(): Promise<Conversation[]> {
-  const { data, error } = await supabase
-    .from("conversations")
-    .select("id,title,pinned,updated_at")
-    .order("pinned", { ascending: false })
-    .order("updated_at", { ascending: false });
-  if (error) throw error;
-  return data ?? [];
+  return backendFetch<Conversation[]>("/conversations");
 }
 
-export async function createConversation(userId: string, title: string): Promise<Conversation> {
-  const { data, error } = await supabase
-    .from("conversations")
-    .insert({ user_id: userId, title })
-    .select("id,title,pinned,updated_at")
-    .single();
-  if (error) throw error;
-  return data;
+export async function createConversation(title: string): Promise<Conversation> {
+  return backendFetch<Conversation>("/conversations", {
+    method: "POST",
+    body: JSON.stringify({ title }),
+  });
 }
 
 export async function renameConversation(id: string, title: string) {
-  const { error } = await supabase.from("conversations").update({ title }).eq("id", id);
-  if (error) throw error;
+  await backendFetch<{ ok: boolean }>(`/conversations/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ title }),
+  });
 }
 
 export async function setPinned(id: string, pinned: boolean) {
-  const { error } = await supabase.from("conversations").update({ pinned }).eq("id", id);
-  if (error) throw error;
+  await backendFetch<{ ok: boolean }>(`/conversations/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ pinned }),
+  });
 }
 
 export async function deleteConversation(id: string) {
-  const { error } = await supabase.from("conversations").delete().eq("id", id);
-  if (error) throw error;
+  await backendFetch<{ ok: boolean }>(`/conversations/${id}`, { method: "DELETE" });
 }
 
 export async function touchConversation(id: string) {
-  const { error } = await supabase
-    .from("conversations")
-    .update({ updated_at: new Date().toISOString() })
-    .eq("id", id);
-  if (error) throw error;
+  await backendFetch<{ ok: boolean }>(`/conversations/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ touch: true }),
+  });
 }
 
 export async function listMessages(conversationId: string): Promise<ChatMessage[]> {
-  const { data, error } = await supabase
-    .from("messages")
-    .select("id,role,parts,created_at")
-    .eq("conversation_id", conversationId)
-    .order("created_at", { ascending: true });
-  if (error) throw error;
+  const data = await backendFetch<Array<{ id: string; role: string; parts: unknown; created_at: string }>>(
+    `/conversations/${conversationId}/messages`,
+  );
+
   return (data ?? []).map((row) => ({
     id: row.id,
     role: row.role === "user" ? "user" : "assistant",
@@ -70,21 +61,17 @@ export async function listMessages(conversationId: string): Promise<ChatMessage[
 
 export async function saveMessage(input: {
   conversationId: string;
-  userId: string;
   role: "user" | "assistant";
   parts: MessagePart[];
 }): Promise<ChatMessage> {
-  const { data, error } = await supabase
-    .from("messages")
-    .insert({
-      conversation_id: input.conversationId,
-      user_id: input.userId,
-      role: input.role,
-      parts: input.parts as unknown as never,
-    })
-    .select("id,role,parts,created_at")
-    .single();
-  if (error) throw error;
+  const data = await backendFetch<{ id: string; parts: unknown; created_at: string }>(
+    `/conversations/${input.conversationId}/messages`,
+    {
+      method: "POST",
+      body: JSON.stringify({ role: input.role, parts: input.parts }),
+    },
+  );
+
   return {
     id: data.id,
     role: input.role,
@@ -92,3 +79,4 @@ export async function saveMessage(input: {
     createdAt: data.created_at,
   };
 }
+
